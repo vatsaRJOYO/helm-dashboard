@@ -4,6 +4,7 @@ import (
 	"github.com/joomcode/errorx"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
+
 	// Import to initialize client auth plugins.
 	// From https://github.com/kubernetes/client-go/issues/242
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -33,13 +34,19 @@ func NewApplication(settings *cli.EnvSettings, helmConfig HelmNSConfigGetter, na
 		return nil, errorx.Decorate(err, "failed to get k8s client")
 	}
 
+	ctxNsRelFilterFactory, err := ReleaseFilterFactory(settings.KubeContext)
+	if err != nil {
+		return nil, errorx.Decorate(err, "failed to get Release Factory")
+	}
+
 	return &Application{
 		HelmConfig: helmConfig,
 		K8s:        k8s,
 		Releases: &Releases{
-			Namespaces: namespaces,
-			Settings:   settings,
-			HelmConfig: helmConfig,
+			Namespaces:      namespaces,
+			Settings:        settings,
+			HelmConfig:      helmConfig,
+			nsReleaseFilter: ctxNsRelFilterFactory,
 		},
 		Repositories: &Repositories{
 			Settings:   settings,

@@ -3,11 +3,12 @@ package objects
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 	"path"
 	"sync"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/joomcode/errorx"
 	"github.com/pkg/errors"
@@ -23,10 +24,11 @@ import (
 )
 
 type Releases struct {
-	Namespaces []string
-	HelmConfig HelmNSConfigGetter
-	Settings   *cli.EnvSettings
-	mx         sync.Mutex
+	Namespaces      []string
+	HelmConfig      HelmNSConfigGetter
+	Settings        *cli.EnvSettings
+	mx              sync.Mutex
+	nsReleaseFilter NSHelmReleaseFilter
 }
 
 func (a *Releases) List() ([]*Release, error) {
@@ -50,7 +52,9 @@ func (a *Releases) List() ([]*Release, error) {
 			return nil, errorx.Decorate(err, "failed to get list of releases")
 		}
 		for _, r := range rels {
-			releases = append(releases, &Release{HelmConfig: a.HelmConfig, Orig: r, Settings: a.Settings})
+			if a.nsReleaseFilter(r.Namespace, r.Name) {
+				releases = append(releases, &Release{HelmConfig: a.HelmConfig, Orig: r, Settings: a.Settings})
+			}
 		}
 	}
 	return releases, nil
